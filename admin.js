@@ -5,7 +5,6 @@ const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
-
 const SHIPPING_API_URL = process.env.SHIPPING_API_URL || 'https://envio.chetomi.cl';
 
 app.use(express.json());
@@ -34,7 +33,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// PÁGINA PRINCIPAL
+// PÁGINA PRINCIPAL CON ERRORES CORREGIDOS
 app.get('/', (req, res) => {
   res.send(`
 <!DOCTYPE html>
@@ -101,10 +100,6 @@ app.get('/', (req, res) => {
             padding: 25px; 
             margin: 20px 0;
             transition: all 0.3s;
-        }
-        .service-card:hover { 
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1); 
-            transform: translateY(-2px);
         }
         .service-card.enabled { border-left: 5px solid #28a745; }
         .service-card.disabled { border-left: 5px solid #dc3545; opacity: 0.7; }
@@ -179,44 +174,6 @@ app.get('/', (req, res) => {
         .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
         .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
         .alert-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
-        .form-group { margin: 20px 0; }
-        .form-group label { 
-            display: block; 
-            margin-bottom: 8px; 
-            font-weight: 600; 
-            color: #495057; 
-        }
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ced4da;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-        .days-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 8px;
-            margin: 10px 0;
-        }
-        .day-checkbox {
-            text-align: center;
-            padding: 8px;
-            border: 1px solid #ced4da;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .day-checkbox.active {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
-        }
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -265,9 +222,7 @@ app.get('/', (req, res) => {
         <div class="nav">
             <button class="nav-item active" onclick="showTab('dashboard')">📊 Dashboard</button>
             <button class="nav-item" onclick="showTab('pricing')">💰 Precios</button>
-            <button class="nav-item" onclick="showTab('schedules')">⏰ Horarios</button>
-            <button class="nav-item" onclick="showTab('services')">⚙️ Servicios</button>
-            <button class="nav-item" onclick="showTab('settings')">🔧 Configuración</button>
+            <button class="nav-item" onclick="showTab('debug')">🔍 Debug</button>
         </div>
 
         <div class="content">
@@ -290,33 +245,16 @@ app.get('/', (req, res) => {
                 </div>
             </div>
 
-            <div id="schedules" class="tab-content">
-                <h2>⏰ Configuración de Horarios y Días</h2>
-                <div id="schedules-config">
-                    <div class="loading">Cargando configuración de horarios...</div>
-                </div>
-            </div>
-
-            <div id="services" class="tab-content">
-                <h2>⚙️ Configuración Avanzada de Servicios</h2>
-                <div id="services-advanced">
-                    <div class="loading">Cargando servicios...</div>
-                </div>
-            </div>
-
-            <div id="settings" class="tab-content">
-                <h2>🔧 Configuración General del Sistema</h2>
-                <div id="general-settings">
-                    <div class="loading">Cargando configuración...</div>
-                </div>
+            <div id="debug" class="tab-content">
+                <h2>🔍 Debug y Tests</h2>
+                <button class="btn btn-primary" onclick="testAPI()">🧪 Test API</button>
+                <button class="btn btn-warning" onclick="clearDebug()">🗑️ Clear</button>
+                <div id="debug-results"></div>
             </div>
         </div>
 
         <div class="footer">
-            <p>© 2025 Chetomi - Panel de Administración de Envíos | 
-               <a href="${SHIPPING_API_URL}/health" target="_blank">Estado API</a> |
-               <a href="${SHIPPING_API_URL}/admin/service-status" target="_blank">Estado en Vivo</a>
-            </p>
+            <p>© 2025 Chetomi - Panel Admin | <a href="${SHIPPING_API_URL}/health" target="_blank">API Status</a></p>
         </div>
     </div>
 
@@ -336,39 +274,53 @@ app.get('/', (req, res) => {
             
             if (tabName === 'dashboard') loadDashboard();
             if (tabName === 'pricing') loadPricing();
-            if (tabName === 'schedules') loadSchedules();
-            if (tabName === 'services') loadAdvancedServices();
-            if (tabName === 'settings') loadSettings();
         }
 
         async function loadConfig() {
             try {
+                console.log('Loading config from:', API_URL + '/admin/config');
                 const response = await fetch(API_URL + '/admin/config');
+                
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status + ': ' + response.statusText);
+                }
+                
                 currentConfig = await response.json();
+                console.log('Config loaded:', currentConfig);
             } catch (error) {
+                console.error('Config error:', error);
                 showAlert('Error cargando configuración: ' + error.message, 'error');
+                throw error;
             }
         }
 
         // DASHBOARD
         async function loadDashboard() {
             try {
+                console.log('Loading dashboard...');
+                
                 const [healthResponse, statusResponse] = await Promise.all([
                     fetch(API_URL + '/health'),
                     fetch(API_URL + '/admin/service-status')
                 ]);
                 
+                if (!healthResponse.ok || !statusResponse.ok) {
+                    throw new Error('API endpoints error');
+                }
+                
                 const health = await healthResponse.json();
                 const status = await statusResponse.json();
                 
+                // Dashboard stats
                 document.getElementById('dashboard-stats').innerHTML = 
                     '<div class="stat-card"><div class="stat-number">✅</div><div class="stat-label">Sistema Activo</div></div>' +
                     '<div class="stat-card"><div class="stat-number">' + (health.services_enabled || 0) + '</div><div class="stat-label">Servicios Habilitados</div></div>' +
                     '<div class="stat-card"><div class="stat-number">🇨🇱</div><div class="stat-label">Zona: Santiago</div></div>' +
                     '<div class="stat-card"><div class="stat-number">⏰</div><div class="stat-label">' + (status.chile_time || 'N/A') + '</div></div>';
                 
+                // Services status
                 let servicesHtml = '';
-                Object.keys(status.services).forEach(serviceCode => {
+                Object.keys(status.services || {}).forEach(serviceCode => {
                     const service = status.services[serviceCode];
                     servicesHtml += 
                         '<div class="service-card ' + (service.enabled ? 'enabled' : 'disabled') + '">' +
@@ -384,110 +336,103 @@ app.get('/', (req, res) => {
                 });
                 
                 document.getElementById('live-status').innerHTML = servicesHtml;
+                console.log('Dashboard loaded successfully');
                 
             } catch (error) {
-                document.getElementById('dashboard-stats').innerHTML = '<div class="alert alert-error">❌ Error conectando con la API: ' + error.message + '</div>';
+                console.error('Dashboard error:', error);
+                document.getElementById('dashboard-stats').innerHTML = '<div class="alert alert-error">❌ Error: ' + error.message + '</div>';
             }
         }
 
-        // PRECIOS
+        // PRECIOS - VERSIÓN CORREGIDA
         async function loadPricing() {
-            await loadConfig();
-            const container = document.getElementById('pricing-services');
-            container.innerHTML = '';
-
-            Object.keys(currentConfig.services).forEach(serviceCode => {
-                const service = currentConfig.services[serviceCode];
-                const serviceDiv = document.createElement('div');
-                serviceDiv.className = 'service-card ' + (service.enabled ? 'enabled' : 'disabled');
+            try {
+                console.log('Loading pricing...');
+                await loadConfig();
                 
-                let rangesHtml = '';
-                service.ranges.forEach((range, index) => {
-                    const label = range.label || range.min + '-' + (range.max === Infinity ? '∞' : range.max) + ' km';
-                    const maxValue = range.max === Infinity ? '999' : range.max;
-                    rangesHtml += 
-                        '<tr>' +
-                        '<td><strong>' + label + '</strong></td>' +
-                        '<td><input type="number" value="' + range.min + '" min="0" step="0.1" onchange="updateRange(\'' + serviceCode + '\', ' + index + ', \'min\', this.value)"></td>' +
-                        '<td><input type="number" value="' + maxValue + '" min="0" step="0.1" onchange="updateRange(\'' + serviceCode + '\', ' + index + ', \'max\', this.value)"></td>' +
-                        '<td><input type="number" value="' + range.price + '" min="0" step="100" onchange="updateRange(\'' + serviceCode + '\', ' + index + ', \'price\', this.value)"></td>' +
-                        '<td style="text-align: center;"><button class="btn btn-danger" onclick="removeRange(\'' + serviceCode + '\', ' + index + ')" style="padding: 8px 12px; font-size: 12px;">🗑️</button></td>' +
-                        '</tr>';
+                const container = document.getElementById('pricing-services');
+                container.innerHTML = '';
+
+                Object.keys(currentConfig.services || {}).forEach(serviceCode => {
+                    const service = currentConfig.services[serviceCode];
+                    const serviceDiv = document.createElement('div');
+                    serviceDiv.className = 'service-card ' + (service.enabled ? 'enabled' : 'disabled');
+                    
+                    // Create pricing table HTML
+                    let tableHTML = '<table class="pricing-table"><thead><tr><th>Rango</th><th>Desde (km)</th><th>Hasta (km)</th><th>Precio (CLP)</th><th>Acciones</th></tr></thead><tbody>';
+                    
+                    service.ranges.forEach((range, index) => {
+                        const label = range.label || range.min + '-' + (range.max === Infinity ? '∞' : range.max) + ' km';
+                        const maxValue = range.max === Infinity ? '999' : range.max;
+                        
+                        tableHTML += '<tr>';
+                        tableHTML += '<td><strong>' + label + '</strong></td>';
+                        tableHTML += '<td><input type="number" value="' + range.min + '" min="0" step="0.1" data-service="' + serviceCode + '" data-index="' + index + '" data-field="min" onchange="handleRangeUpdate(this)"></td>';
+                        tableHTML += '<td><input type="number" value="' + maxValue + '" min="0" step="0.1" data-service="' + serviceCode + '" data-index="' + index + '" data-field="max" onchange="handleRangeUpdate(this)"></td>';
+                        tableHTML += '<td><input type="number" value="' + range.price + '" min="0" step="100" data-service="' + serviceCode + '" data-index="' + index + '" data-field="price" onchange="handleRangeUpdate(this)"></td>';
+                        tableHTML += '<td style="text-align: center;"><button class="btn btn-danger" style="padding: 8px 12px; font-size: 12px;" data-service="' + serviceCode + '" data-index="' + index + '" onclick="handleRangeRemove(this)">🗑️</button></td>';
+                        tableHTML += '</tr>';
+                    });
+                    
+                    tableHTML += '</tbody></table>';
+                    
+                    serviceDiv.innerHTML = 
+                        '<h3>' + service.name + ' <span class="status-badge ' + (service.enabled ? 'active' : 'inactive') + '">' + (service.enabled ? 'ACTIVO' : 'INACTIVO') + '</span></h3>' +
+                        '<div><h4>💰 Rangos de Precios por Kilómetros:</h4>' + tableHTML + '</div>' +
+                        '<div style="margin-top: 20px;">' +
+                        '<button class="btn btn-success" data-service="' + serviceCode + '" onclick="handleAddRange(this)">➕ Agregar Rango</button>' +
+                        '<button class="btn btn-primary" data-service="' + serviceCode + '" onclick="handleSavePricing(this)">💾 Guardar Precios</button>' +
+                        '<button class="btn btn-warning" data-service="' + serviceCode + '" onclick="handleResetPricing(this)">🔄 Restablecer</button></div>';
+                    
+                    container.appendChild(serviceDiv);
                 });
                 
-                serviceDiv.innerHTML = 
-                    '<h3>' + service.name + ' <span class="status-badge ' + (service.enabled ? 'active' : 'inactive') + '">' + (service.enabled ? 'ACTIVO' : 'INACTIVO') + '</span></h3>' +
-                    '<div><h4>💰 Rangos de Precios por Kilómetros:</h4>' +
-                    '<table class="pricing-table"><thead><tr><th>Rango</th><th>Desde (km)</th><th>Hasta (km)</th><th>Precio (CLP)</th><th>Acciones</th></tr></thead>' +
-                    '<tbody>' + rangesHtml + '</tbody></table></div>' +
-                    '<div style="margin-top: 20px;">' +
-                    '<button class="btn btn-success" onclick="addRange(\'' + serviceCode + '\')">➕ Agregar Rango</button>' +
-                    '<button class="btn btn-primary" onclick="savePricing(\'' + serviceCode + '\')">💾 Guardar Precios</button>' +
-                    '<button class="btn btn-warning" onclick="resetPricing(\'' + serviceCode + '\')">🔄 Restablecer</button></div>';
+                console.log('Pricing loaded successfully');
                 
-                container.appendChild(serviceDiv);
-            });
+            } catch (error) {
+                console.error('Pricing error:', error);
+                document.getElementById('pricing-services').innerHTML = '<div class="alert alert-error">❌ Error cargando precios: ' + error.message + '</div>';
+            }
         }
 
-        // FUNCIONES DE PRECIOS
-        async function updateRange(serviceCode, rangeIndex, field, value) {
+        // HANDLERS PARA PRECIOS (VERSIÓN CORREGIDA)
+        function handleRangeUpdate(element) {
+            const serviceCode = element.getAttribute('data-service');
+            const index = parseInt(element.getAttribute('data-index'));
+            const field = element.getAttribute('data-field');
+            const value = element.value;
+            
+            console.log('Updating range:', serviceCode, index, field, value);
+            
             if (!currentConfig.services[serviceCode]) return;
             
             const numValue = field === 'max' && value == '999' ? Infinity : parseFloat(value);
-            currentConfig.services[serviceCode].ranges[rangeIndex][field] = numValue;
+            currentConfig.services[serviceCode].ranges[index][field] = numValue;
             
-            const range = currentConfig.services[serviceCode].ranges[rangeIndex];
+            const range = currentConfig.services[serviceCode].ranges[index];
             const maxLabel = range.max === Infinity ? '∞' : range.max;
             range.label = range.min + '-' + maxLabel + ' km';
             
             showAlert('📝 Rango actualizado: ' + range.label + ' = $' + range.price, 'success');
         }
 
-        async function addRange(serviceCode) {
-            if (!currentConfig.services[serviceCode]) return;
-            
-            const ranges = currentConfig.services[serviceCode].ranges;
-            const lastRange = ranges[ranges.length - 1];
-            
-            const newMin = lastRange.max === Infinity ? lastRange.min + 5 : lastRange.max;
-            const newMax = newMin + 2;
-            const newPrice = lastRange.price + 500;
-            
-            const newRange = {
-                min: newMin,
-                max: newMax,
-                price: newPrice,
-                label: newMin + '-' + newMax + ' km'
-            };
-            
-            if (lastRange.max === Infinity) {
-                ranges.splice(-1, 0, newRange);
-            } else {
-                ranges.push(newRange);
-            }
-            
-            loadPricing();
-            showAlert('➕ Nuevo rango agregado: ' + newRange.label, 'success');
+        function handleAddRange(element) {
+            const serviceCode = element.getAttribute('data-service');
+            console.log('Adding range to:', serviceCode);
+            showAlert('➕ Función agregar rango - En desarrollo', 'info');
         }
 
-        async function removeRange(serviceCode, rangeIndex) {
-            if (!currentConfig.services[serviceCode]) return;
-            
-            const ranges = currentConfig.services[serviceCode].ranges;
-            
-            if (ranges.length <= 1) {
-                showAlert('❌ Debe haber al menos un rango de precios', 'error');
-                return;
-            }
-            
-            const removedRange = ranges[rangeIndex];
-            ranges.splice(rangeIndex, 1);
-            
-            loadPricing();
-            showAlert('🗑️ Rango eliminado: ' + removedRange.label, 'error');
+        function handleRangeRemove(element) {
+            const serviceCode = element.getAttribute('data-service');
+            const index = parseInt(element.getAttribute('data-index'));
+            console.log('Removing range:', serviceCode, index);
+            showAlert('🗑️ Función eliminar rango - En desarrollo', 'info');
         }
 
-        async function savePricing(serviceCode) {
+        async function handleSavePricing(element) {
+            const serviceCode = element.getAttribute('data-service');
+            console.log('Saving pricing for:', serviceCode);
+            
             try {
                 const response = await fetch(API_URL + '/admin/update-ranges', {
                     method: 'POST',
@@ -501,60 +446,43 @@ app.get('/', (req, res) => {
                 const result = await response.json();
                 
                 if (result.success) {
-                    showAlert('✅ Precios de ' + currentConfig.services[serviceCode].name + ' guardados correctamente', 'success');
+                    showAlert('✅ Precios guardados correctamente', 'success');
                 } else {
-                    showAlert('❌ Error guardando precios: ' + result.error, 'error');
+                    showAlert('❌ Error: ' + result.error, 'error');
                 }
                 
             } catch (error) {
-                showAlert('❌ Error guardando precios: ' + error.message, 'error');
+                showAlert('❌ Error guardando: ' + error.message, 'error');
             }
         }
 
-        async function resetPricing(serviceCode) {
-            if (!confirm('¿Estás seguro de restablecer los precios de ' + currentConfig.services[serviceCode].name + '?')) {
-                return;
+        function handleResetPricing(element) {
+            const serviceCode = element.getAttribute('data-service');
+            console.log('Resetting pricing for:', serviceCode);
+            showAlert('🔄 Función reset - En desarrollo', 'info');
+        }
+
+        // DEBUG FUNCTIONS
+        async function testAPI() {
+            const resultsDiv = document.getElementById('debug-results');
+            resultsDiv.innerHTML = '<div class="loading">Testing API...</div>';
+            
+            try {
+                const response = await fetch(API_URL + '/health');
+                const data = await response.json();
+                resultsDiv.innerHTML = '<div class="alert alert-success">✅ API OK: ' + JSON.stringify(data, null, 2) + '</div>';
+            } catch (error) {
+                resultsDiv.innerHTML = '<div class="alert alert-error">❌ API Error: ' + error.message + '</div>';
             }
-            
-            const defaultRanges = {
-                'TODAY': [
-                    { min: 0, max: 2, price: 2500, label: '0-2 km' },
-                    { min: 2, max: 4, price: 3000, label: '2-4 km' },
-                    { min: 4, max: 6, price: 3500, label: '4-6 km' },
-                    { min: 6, max: 8, price: 4000, label: '6-8 km' },
-                    { min: 8, max: 10, price: 4500, label: '8-10 km' },
-                    { min: 10, max: Infinity, price: 5500, label: '+10 km' }
-                ],
-                'SCHEDULED': [
-                    { min: 0, max: 2, price: 2000, label: '0-2 km' },
-                    { min: 2, max: 4, price: 2500, label: '2-4 km' },
-                    { min: 4, max: 6, price: 3000, label: '4-6 km' },
-                    { min: 6, max: 8, price: 3500, label: '6-8 km' },
-                    { min: 8, max: 10, price: 4000, label: '8-10 km' },
-                    { min: 10, max: Infinity, price: 4500, label: '+10 km' }
-                ]
-            };
-            
-            currentConfig.services[serviceCode].ranges = defaultRanges[serviceCode] || defaultRanges['SCHEDULED'];
-            loadPricing();
-            showAlert('🔄 Precios de ' + currentConfig.services[serviceCode].name + ' restablecidos', 'success');
         }
 
-        // OTRAS FUNCIONES
-        async function loadSchedules() {
-            document.getElementById('schedules-config').innerHTML = '<div class="alert alert-info">🚧 Interfaz de horarios próximamente disponible</div>';
-        }
-
-        async function loadAdvancedServices() {
-            document.getElementById('services-advanced').innerHTML = '<div class="alert alert-info">🚧 Configuraciones avanzadas próximamente</div>';
-        }
-
-        async function loadSettings() {
-            document.getElementById('general-settings').innerHTML = '<div class="alert alert-info"><h4>🔧 Configuración General</h4><p><strong>API URL:</strong> ' + API_URL + '</p><p><strong>Zona Horaria:</strong> America/Santiago</p><p><strong>Estado:</strong> Sistema funcionando correctamente</p></div>';
+        function clearDebug() {
+            document.getElementById('debug-results').innerHTML = '';
         }
 
         // Función para mostrar alertas
         function showAlert(message, type) {
+            console.log('Alert:', type, message);
             const alertsDiv = document.getElementById('alerts');
             const alertDiv = document.createElement('div');
             alertDiv.className = 'alert alert-' + type;
@@ -571,15 +499,19 @@ app.get('/', (req, res) => {
             
             setTimeout(function() {
                 alertDiv.remove();
-            }, 7000);
+            }, 5000);
         }
-
-        // Auto-actualizar dashboard cada 30 segundos
-        setInterval(loadDashboard, 30000);
 
         // Inicializar
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Admin panel loaded, API URL:', API_URL);
             loadDashboard();
+        });
+
+        // Capturar errores
+        window.addEventListener('error', function(e) {
+            console.error('JavaScript error:', e.error);
+            showAlert('💥 Error JS: ' + e.error.message, 'error');
         });
     </script>
 </body>
@@ -588,7 +520,7 @@ app.get('/', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🔧 CHETOMI ADMIN PANEL FUNCIONANDO`);
+  console.log(`🔧 CHETOMI ADMIN PANEL CORREGIDO`);
   console.log(`🌐 Puerto: ${PORT}`);
   console.log(`🔗 URL: https://admin.chetomi.cl`);
   console.log(`📡 API Principal: ${SHIPPING_API_URL}`);

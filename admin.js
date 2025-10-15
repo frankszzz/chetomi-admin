@@ -618,24 +618,180 @@ app.get('/', (req, res) => {
         }
 
         // FUNCIONES PARA OTRAS PESTAÑAS (simplificadas por ahora)
-        async function loadPricing() {
-            document.getElementById('pricing-services').innerHTML = '<div class="alert alert-info">🚧 Interfaz de precios disponible - funciona igual que antes</div>';
-        }
+       // REEMPLAZAR LA FUNCIÓN loadPricing() CON ESTA VERSIÓN COMPLETA:
+async function loadPricing() {
+    await loadConfig();
+    const container = document.getElementById('pricing-services');
+    container.innerHTML = '';
 
-        async function loadAdvancedServices() {
-            document.getElementById('services-advanced').innerHTML = '<div class="alert alert-info">🚧 Configuraciones avanzadas disponibles próximamente</div>';
-        }
+    Object.keys(currentConfig.services).forEach(serviceCode => {
+        const service = currentConfig.services[serviceCode];
+        const serviceDiv = document.createElement('div');
+        serviceDiv.className = `service-card ${service.enabled ? 'enabled' : 'disabled'}`;
+        
+        serviceDiv.innerHTML = `
+            <h3>${service.name} 
+                <span class="status-badge ${service.enabled ? 'active' : 'inactive'}">
+                    ${service.enabled ? 'ACTIVO' : 'INACTIVO'}
+                </span>
+            </h3>
+            
+            <div id="ranges-${serviceCode}">
+                <h4>💰 Rangos de Precios por Kilómetros:</h4>
+                <table class="pricing-table">
+                    <thead>
+                        <tr>
+                            <th>Rango</th>
+                            <th>Desde (km)</th>
+                            <th>Hasta (km)</th>
+                            <th>Precio (CLP)</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${service.ranges.map((range, index) => `
+                            <tr>
+                                <td><strong>${range.label || range.min + '-' + (range.max === Infinity ? '∞' : range.max) + ' km'}</strong></td>
+                                <td><input type="number" value="${range.min}" min="0" step="0.1" onchange="updateRange('${serviceCode}', ${index}, 'min', this.value)"></td>
+                                <td><input type="number" value="${range.max === Infinity ? '999' : range.max}" min="0" step="0.1" onchange="updateRange('${serviceCode}', ${index}, 'max', this.value)"></td>
+                                <td><input type="number" value="${range.price}" min="0" step="100" onchange="updateRange('${serviceCode}', ${index}, 'price', this.value)"></td>
+                                <td style="text-align: center;">
+                                    <button class="btn btn-danger" onclick="removeRange('${serviceCode}', ${index})" style="padding: 8px 12px; font-size: 12px;">🗑️ Eliminar</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <button class="btn btn-success" onclick="addRange('${serviceCode}')">➕ Agregar Rango</button>
+                <button class="btn btn-primary" onclick="savePricing('${serviceCode}')">💾 Guardar Precios</button>
+                <button class="btn btn-warning" onclick="resetPricing('${serviceCode}')">🔄 Restablecer</button>
+            </div>
+        `;
+        
+        container.appendChild(serviceDiv);
+    });
+}
 
-        async function loadSettings() {
-            document.getElementById('general-settings').innerHTML = \`
-                <div class="alert alert-info">
-                    <h4>🔧 Configuración General</h4>
-                    <p><strong>API URL:</strong> \${API_URL}</p>
-                    <p><strong>Zona Horaria:</strong> America/Santiago</p>
-                    <p><strong>Estado:</strong> Sistema funcionando correctamente</p>
-                </div>
-            \`;
+// AGREGAR TAMBIÉN ESTAS FUNCIONES DESPUÉS DE loadPricing():
+
+async function updateRange(serviceCode, rangeIndex, field, value) {
+    if (!currentConfig.services[serviceCode]) return;
+    
+    const numValue = field === 'max' && value == '999' ? Infinity : parseFloat(value);
+    currentConfig.services[serviceCode].ranges[rangeIndex][field] = numValue;
+    
+    // Actualizar label automáticamente
+    const range = currentConfig.services[serviceCode].ranges[rangeIndex];
+    const maxLabel = range.max === Infinity ? '∞' : range.max;
+    range.label = `${range.min}-${maxLabel} km`;
+    
+    // Mostrar feedback visual
+    showAlert(`📝 Rango actualizado: ${range.label} = $${range.price}`, 'success');
+}
+
+async function addRange(serviceCode) {
+    if (!currentConfig.services[serviceCode]) return;
+    
+    const ranges = currentConfig.services[serviceCode].ranges;
+    const lastRange = ranges[ranges.length - 1];
+    
+    // Calcular nuevo rango
+    const newMin = lastRange.max === Infinity ? lastRange.min + 5 : lastRange.max;
+    const newMax = newMin + 2;
+    const newPrice = lastRange.price + 500;
+    
+    const newRange = {
+        min: newMin,
+        max: newMax,
+        price: newPrice,
+        label: `${newMin}-${newMax} km`
+    };
+    
+    // Insertar antes del último rango (que es +∞)
+    if (lastRange.max === Infinity) {
+        ranges.splice(-1, 0, newRange);
+    } else {
+        ranges.push(newRange);
+    }
+    
+    loadPricing(); // Recargar tabla
+    showAlert(`➕ Nuevo rango agregado: ${newRange.label}`, 'success');
+}
+
+async function removeRange(serviceCode, rangeIndex) {
+    if (!currentConfig.services[serviceCode]) return;
+    
+    const ranges = currentConfig.services[serviceCode].ranges;
+    
+    if (ranges.length <= 1) {
+        showAlert('❌ Debe haber al menos un rango de precios', 'error');
+        return;
+    }
+    
+    const removedRange = ranges[rangeIndex];
+    ranges.splice(rangeIndex, 1);
+    
+    loadPricing(); // Recargar tabla
+    showAlert(`🗑️ Rango eliminado: ${removedRange.label}`, 'error');
+}
+
+async function savePricing(serviceCode) {
+    try {
+        const response = await fetch(API_URL + '/admin/update-ranges', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                serviceCode, 
+                ranges: currentConfig.services[serviceCode].ranges 
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showAlert(`✅ Precios de ${currentConfig.services[serviceCode].name} guardados correctamente`, 'success');
+        } else {
+            showAlert('❌ Error guardando precios: ' + result.error, 'error');
         }
+        
+    } catch (error) {
+        showAlert('❌ Error guardando precios: ' + error.message, 'error');
+    }
+}
+
+async function resetPricing(serviceCode) {
+    if (!confirm(`¿Estás seguro de restablecer los precios de ${currentConfig.services[serviceCode].name}?`)) {
+        return;
+    }
+    
+    // Rangos por defecto según el tipo de servicio
+    const defaultRanges = {
+        'TODAY': [
+            { min: 0, max: 2, price: 2500, label: '0-2 km' },
+            { min: 2, max: 4, price: 3000, label: '2-4 km' },
+            { min: 4, max: 6, price: 3500, label: '4-6 km' },
+            { min: 6, max: 8, price: 4000, label: '6-8 km' },
+            { min: 8, max: 10, price: 4500, label: '8-10 km' },
+            { min: 10, max: Infinity, price: 5500, label: '+10 km' }
+        ],
+        'SCHEDULED': [
+            { min: 0, max: 2, price: 2000, label: '0-2 km' },
+            { min: 2, max: 4, price: 2500, label: '2-4 km' },
+            { min: 4, max: 6, price: 3000, label: '4-6 km' },
+            { min: 6, max: 8, price: 3500, label: '6-8 km' },
+            { min: 8, max: 10, price: 4000, label: '8-10 km' },
+            { min: 10, max: Infinity, price: 4500, label: '+10 km' }
+        ]
+    };
+    
+    currentConfig.services[serviceCode].ranges = defaultRanges[serviceCode] || defaultRanges['STANDARD'];
+    loadPricing();
+    showAlert(`🔄 Precios de ${currentConfig.services[serviceCode].name} restablecidos`, 'success');
+}
+
 
         // Función para mostrar alertas
         function showAlert(message, type) {

@@ -33,7 +33,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// PÁGINA PRINCIPAL CON GESTIÓN DE HORARIOS
+// PÁGINA PRINCIPAL CON GESTIÓN DE HORARIOS Y PRECIOS
 app.get('/', (req, res) => {
   res.send(`
 <!DOCTYPE html>
@@ -210,7 +210,6 @@ app.get('/', (req, res) => {
             color: #6c757d;
             border-top: 1px solid #dee2e6;
         }
-        /* ESTILOS PARA HORARIOS */
         .form-group { margin: 20px 0; }
         .form-group label { 
             display: block; 
@@ -389,7 +388,7 @@ app.get('/', (req, res) => {
             }
         }
 
-        // DASHBOARD
+        // ==================== DASHBOARD ====================
         async function loadDashboard() {
             try {
                 console.log('Loading dashboard...');
@@ -406,14 +405,12 @@ app.get('/', (req, res) => {
                 const health = await healthResponse.json();
                 const status = await statusResponse.json();
                 
-                // Dashboard stats
                 document.getElementById('dashboard-stats').innerHTML = 
                     '<div class="stat-card"><div class="stat-number">✅</div><div class="stat-label">Sistema Activo</div></div>' +
                     '<div class="stat-card"><div class="stat-number">' + (health.services_enabled || 0) + '</div><div class="stat-label">Servicios Habilitados</div></div>' +
                     '<div class="stat-card"><div class="stat-number">🇨🇱</div><div class="stat-label">Zona: Santiago</div></div>' +
                     '<div class="stat-card"><div class="stat-number">⏰</div><div class="stat-label">' + (status.chile_time || 'N/A') + '</div></div>';
                 
-                // Services status
                 let servicesHtml = '';
                 Object.keys(status.services || {}).forEach(serviceCode => {
                     const service = status.services[serviceCode];
@@ -439,7 +436,187 @@ app.get('/', (req, res) => {
             }
         }
 
-        // HORARIOS - NUEVA FUNCIONALIDAD
+        // ==================== PRECIOS ====================
+        async function loadPricing() {
+            try {
+                console.log('Loading pricing...');
+                await loadConfig();
+                
+                const container = document.getElementById('pricing-services');
+                container.innerHTML = '';
+
+                Object.keys(currentConfig.services || {}).forEach(serviceCode => {
+                    const service = currentConfig.services[serviceCode];
+                    const serviceDiv = document.createElement('div');
+                    serviceDiv.className = 'service-card ' + (service.enabled ? 'enabled' : 'disabled');
+                    
+                    let tableHTML = '<table class="pricing-table"><thead><tr><th>Rango</th><th>Desde (km)</th><th>Hasta (km)</th><th>Precio (CLP)</th><th>Acciones</th></tr></thead><tbody>';
+                    
+                    service.ranges.forEach((range, index) => {
+                        const label = range.label || range.min + '-' + (range.max === Infinity ? '∞' : range.max) + ' km';
+                        const maxValue = range.max === Infinity ? '999' : range.max;
+                        
+                        tableHTML += '<tr>';
+                        tableHTML += '<td><strong>' + label + '</strong></td>';
+                        tableHTML += '<td><input type="number" value="' + range.min + '" min="0" step="0.1" data-service="' + serviceCode + '" data-index="' + index + '" data-field="min" onchange="handleRangeUpdate(this)"></td>';
+                        tableHTML += '<td><input type="number" value="' + maxValue + '" min="0" step="0.1" data-service="' + serviceCode + '" data-index="' + index + '" data-field="max" onchange="handleRangeUpdate(this)"></td>';
+                        tableHTML += '<td><input type="number" value="' + range.price + '" min="0" step="100" data-service="' + serviceCode + '" data-index="' + index + '" data-field="price" onchange="handleRangeUpdate(this)"></td>';
+                        tableHTML += '<td style="text-align: center;"><button class="btn btn-danger" style="padding: 8px 12px; font-size: 12px;" data-service="' + serviceCode + '" data-index="' + index + '" onclick="handleRangeRemove(this)">🗑️</button></td>';
+                        tableHTML += '</tr>';
+                    });
+                    
+                    tableHTML += '</tbody></table>';
+                    
+                    serviceDiv.innerHTML = 
+                        '<h3>' + service.name + ' <span class="status-badge ' + (service.enabled ? 'active' : 'inactive') + '">' + (service.enabled ? 'ACTIVO' : 'INACTIVO') + '</span></h3>' +
+                        '<div><h4>💰 Rangos de Precios por Kilómetros:</h4>' + tableHTML + '</div>' +
+                        '<div style="margin-top: 20px;">' +
+                        '<button class="btn btn-success" data-service="' + serviceCode + '" onclick="handleAddRange(this)">➕ Agregar Rango</button>' +
+                        '<button class="btn btn-primary" data-service="' + serviceCode + '" onclick="handleSavePricing(this)">💾 Guardar Precios</button>' +
+                        '<button class="btn btn-warning" data-service="' + serviceCode + '" onclick="handleResetPricing(this)">🔄 Restablecer</button></div>';
+                    
+                    container.appendChild(serviceDiv);
+                });
+                
+                console.log('Pricing loaded successfully');
+                
+            } catch (error) {
+                console.error('Pricing error:', error);
+                document.getElementById('pricing-services').innerHTML = '<div class="alert alert-error">❌ Error cargando precios: ' + error.message + '</div>';
+            }
+        }
+
+        function handleRangeUpdate(element) {
+            const serviceCode = element.getAttribute('data-service');
+            const index = parseInt(element.getAttribute('data-index'));
+            const field = element.getAttribute('data-field');
+            const value = element.value;
+            
+            console.log('Updating range:', serviceCode, index, field, value);
+            
+            if (!currentConfig.services[serviceCode]) return;
+            
+            const numValue = field === 'max' && value == '999' ? Infinity : parseFloat(value);
+            currentConfig.services[serviceCode].ranges[index][field] = numValue;
+            
+            const range = currentConfig.services[serviceCode].ranges[index];
+            const maxLabel = range.max === Infinity ? '∞' : range.max;
+            range.label = range.min + '-' + maxLabel + ' km';
+            
+            showAlert('📝 Rango actualizado: ' + range.label + ' = $' + range.price, 'success');
+        }
+
+        function handleAddRange(element) {
+            const serviceCode = element.getAttribute('data-service');
+            console.log('Adding range to:', serviceCode);
+            
+            if (!currentConfig.services[serviceCode]) return;
+            
+            const ranges = currentConfig.services[serviceCode].ranges;
+            const lastRange = ranges[ranges.length - 1];
+            
+            const newMin = lastRange.max === Infinity ? lastRange.min + 5 : lastRange.max;
+            const newMax = newMin + 2;
+            const newPrice = lastRange.price + 500;
+            
+            const newRange = {
+                min: newMin,
+                max: newMax,
+                price: newPrice,
+                label: newMin + '-' + newMax + ' km'
+            };
+            
+            if (lastRange.max === Infinity) {
+                ranges.splice(-1, 0, newRange);
+            } else {
+                ranges.push(newRange);
+            }
+            
+            loadPricing();
+            showAlert('➕ Nuevo rango agregado: ' + newRange.label, 'success');
+        }
+
+        function handleRangeRemove(element) {
+            const serviceCode = element.getAttribute('data-service');
+            const index = parseInt(element.getAttribute('data-index'));
+            console.log('Removing range:', serviceCode, index);
+            
+            if (!currentConfig.services[serviceCode]) return;
+            
+            const ranges = currentConfig.services[serviceCode].ranges;
+            
+            if (ranges.length <= 1) {
+                showAlert('❌ Debe haber al menos un rango de precios', 'error');
+                return;
+            }
+            
+            const removedRange = ranges[index];
+            ranges.splice(index, 1);
+            
+            loadPricing();
+            showAlert('🗑️ Rango eliminado: ' + removedRange.label, 'error');
+        }
+
+        async function handleSavePricing(element) {
+            const serviceCode = element.getAttribute('data-service');
+            console.log('Saving pricing for:', serviceCode);
+            
+            try {
+                const response = await fetch(API_URL + '/admin/update-ranges', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        serviceCode, 
+                        ranges: currentConfig.services[serviceCode].ranges 
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('✅ Precios de ' + currentConfig.services[serviceCode].name + ' guardados correctamente', 'success');
+                } else {
+                    showAlert('❌ Error: ' + result.error, 'error');
+                }
+                
+            } catch (error) {
+                showAlert('❌ Error guardando: ' + error.message, 'error');
+            }
+        }
+
+        function handleResetPricing(element) {
+            const serviceCode = element.getAttribute('data-service');
+            console.log('Resetting pricing for:', serviceCode);
+            
+            if (!confirm('¿Estás seguro de restablecer los precios de ' + currentConfig.services[serviceCode].name + '?')) {
+                return;
+            }
+            
+            const defaultRanges = {
+                'TODAY': [
+                    { min: 0, max: 2, price: 2500, label: '0-2 km' },
+                    { min: 2, max: 4, price: 3000, label: '2-4 km' },
+                    { min: 4, max: 6, price: 3500, label: '4-6 km' },
+                    { min: 6, max: 8, price: 4000, label: '6-8 km' },
+                    { min: 8, max: 10, price: 4500, label: '8-10 km' },
+                    { min: 10, max: Infinity, price: 5500, label: '+10 km' }
+                ],
+                'SCHEDULED': [
+                    { min: 0, max: 2, price: 2000, label: '0-2 km' },
+                    { min: 2, max: 4, price: 2500, label: '2-4 km' },
+                    { min: 4, max: 6, price: 3000, label: '4-6 km' },
+                    { min: 6, max: 8, price: 3500, label: '6-8 km' },
+                    { min: 8, max: 10, price: 4000, label: '8-10 km' },
+                    { min: 10, max: Infinity, price: 4500, label: '+10 km' }
+                ]
+            };
+            
+            currentConfig.services[serviceCode].ranges = defaultRanges[serviceCode] || defaultRanges['SCHEDULED'];
+            loadPricing();
+            showAlert('🔄 Precios de ' + currentConfig.services[serviceCode].name + ' restablecidos', 'success');
+        }
+
+        // ==================== HORARIOS ====================
         async function loadSchedules() {
             try {
                 console.log('Loading schedules...');
@@ -492,12 +669,6 @@ app.get('/', (req, res) => {
                         '🚫 Bloquear entrega el mismo día</label>' +
                         '</div></div>' +
                         
-                        '<div class="alert alert-info" style="margin: 15px 0;">' +
-                        '<strong>💡 Configuración Recomendada:</strong><br>' +
-                        '<strong>Envío Hoy:</strong> Sin calendario, sin bloqueo de día, horario limitado (ej: 8AM-6PM)<br>' +
-                        '<strong>Envío Programado:</strong> Con calendario, con bloqueo de día, horario extendido (ej: 8AM-8PM)' +
-                        '</div>' +
-                        
                         '<div style="margin-top: 20px;">' +
                         '<button class="btn ' + (service.enabled ? 'btn-danger' : 'btn-success') + '" data-service="' + serviceCode + '" onclick="toggleServiceStatus(this)">' +
                         (service.enabled ? '❌ Desactivar' : '✅ Activar') + ' Servicio</button>' +
@@ -515,7 +686,6 @@ app.get('/', (req, res) => {
             }
         }
 
-        // HANDLERS PARA HORARIOS
         function updateServiceTime(element) {
             const serviceCode = element.getAttribute('data-service');
             const field = element.getAttribute('data-field');
@@ -540,13 +710,11 @@ app.get('/', (req, res) => {
             const dayNames = ['Domingos', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábados'];
             
             if (service.available_days.includes(dayIndex)) {
-                // Remover día
                 const index = service.available_days.indexOf(dayIndex);
                 service.available_days.splice(index, 1);
                 element.classList.remove('active');
                 showAlert('📅 ' + dayNames[dayIndex] + ' DESACTIVADO para ' + service.name, 'error');
             } else {
-                // Agregar día
                 service.available_days.push(dayIndex);
                 service.available_days.sort();
                 element.classList.add('active');
@@ -620,7 +788,7 @@ app.get('/', (req, res) => {
                 
                 if (result.success) {
                     showAlert('✅ Configuración de ' + service.name + ' guardada correctamente', 'success');
-                    loadDashboard(); // Actualizar dashboard
+                    loadDashboard();
                 } else {
                     showAlert('❌ Error: ' + result.error, 'error');
                 }
@@ -653,193 +821,7 @@ app.get('/', (req, res) => {
             }
         }
 
-        // PRECIOS (versión simplificada)
-       // AGREGAR ESTAS FUNCIONES COMPLETAS AL admin.js
-
-// PRECIOS - VERSIÓN COMPLETA CON EDICIÓN
-async function loadPricing() {
-    try {
-        console.log('Loading pricing...');
-        await loadConfig();
-        
-        const container = document.getElementById('pricing-services');
-        container.innerHTML = '';
-
-        Object.keys(currentConfig.services || {}).forEach(serviceCode => {
-            const service = currentConfig.services[serviceCode];
-            const serviceDiv = document.createElement('div');
-            serviceDiv.className = 'service-card ' + (service.enabled ? 'enabled' : 'disabled');
-            
-            // Create pricing table HTML
-            let tableHTML = '<table class="pricing-table"><thead><tr><th>Rango</th><th>Desde (km)</th><th>Hasta (km)</th><th>Precio (CLP)</th><th>Acciones</th></tr></thead><tbody>';
-            
-            service.ranges.forEach((range, index) => {
-                const label = range.label || range.min + '-' + (range.max === Infinity ? '∞' : range.max) + ' km';
-                const maxValue = range.max === Infinity ? '999' : range.max;
-                
-                tableHTML += '<tr>';
-                tableHTML += '<td><strong>' + label + '</strong></td>';
-                tableHTML += '<td><input type="number" value="' + range.min + '" min="0" step="0.1" data-service="' + serviceCode + '" data-index="' + index + '" data-field="min" onchange="handleRangeUpdate(this)"></td>';
-                tableHTML += '<td><input type="number" value="' + maxValue + '" min="0" step="0.1" data-service="' + serviceCode + '" data-index="' + index + '" data-field="max" onchange="handleRangeUpdate(this)"></td>';
-                tableHTML += '<td><input type="number" value="' + range.price + '" min="0" step="100" data-service="' + serviceCode + '" data-index="' + index + '" data-field="price" onchange="handleRangeUpdate(this)"></td>';
-                tableHTML += '<td style="text-align: center;"><button class="btn btn-danger" style="padding: 8px 12px; font-size: 12px;" data-service="' + serviceCode + '" data-index="' + index + '" onclick="handleRangeRemove(this)">🗑️</button></td>';
-                tableHTML += '</tr>';
-            });
-            
-            tableHTML += '</tbody></table>';
-            
-            serviceDiv.innerHTML = 
-                '<h3>' + service.name + ' <span class="status-badge ' + (service.enabled ? 'active' : 'inactive') + '">' + (service.enabled ? 'ACTIVO' : 'INACTIVO') + '</span></h3>' +
-                '<div><h4>💰 Rangos de Precios por Kilómetros:</h4>' + tableHTML + '</div>' +
-                '<div style="margin-top: 20px;">' +
-                '<button class="btn btn-success" data-service="' + serviceCode + '" onclick="handleAddRange(this)">➕ Agregar Rango</button>' +
-                '<button class="btn btn-primary" data-service="' + serviceCode + '" onclick="handleSavePricing(this)">💾 Guardar Precios</button>' +
-                '<button class="btn btn-warning" data-service="' + serviceCode + '" onclick="handleResetPricing(this)">🔄 Restablecer</button></div>';
-            
-            container.appendChild(serviceDiv);
-        });
-        
-        console.log('Pricing loaded successfully');
-        
-    } catch (error) {
-        console.error('Pricing error:', error);
-        document.getElementById('pricing-services').innerHTML = '<div class="alert alert-error">❌ Error cargando precios: ' + error.message + '</div>';
-    }
-}
-
-// HANDLERS COMPLETOS PARA PRECIOS
-function handleRangeUpdate(element) {
-    const serviceCode = element.getAttribute('data-service');
-    const index = parseInt(element.getAttribute('data-index'));
-    const field = element.getAttribute('data-field');
-    const value = element.value;
-    
-    console.log('Updating range:', serviceCode, index, field, value);
-    
-    if (!currentConfig.services[serviceCode]) return;
-    
-    const numValue = field === 'max' && value == '999' ? Infinity : parseFloat(value);
-    currentConfig.services[serviceCode].ranges[index][field] = numValue;
-    
-    const range = currentConfig.services[serviceCode].ranges[index];
-    const maxLabel = range.max === Infinity ? '∞' : range.max;
-    range.label = range.min + '-' + maxLabel + ' km';
-    
-    showAlert('📝 Rango actualizado: ' + range.label + ' = $' + range.price, 'success');
-}
-
-function handleAddRange(element) {
-    const serviceCode = element.getAttribute('data-service');
-    console.log('Adding range to:', serviceCode);
-    
-    if (!currentConfig.services[serviceCode]) return;
-    
-    const ranges = currentConfig.services[serviceCode].ranges;
-    const lastRange = ranges[ranges.length - 1];
-    
-    const newMin = lastRange.max === Infinity ? lastRange.min + 5 : lastRange.max;
-    const newMax = newMin + 2;
-    const newPrice = lastRange.price + 500;
-    
-    const newRange = {
-        min: newMin,
-        max: newMax,
-        price: newPrice,
-        label: newMin + '-' + newMax + ' km'
-    };
-    
-    if (lastRange.max === Infinity) {
-        ranges.splice(-1, 0, newRange);
-    } else {
-        ranges.push(newRange);
-    }
-    
-    loadPricing(); // Recargar tabla
-    showAlert('➕ Nuevo rango agregado: ' + newRange.label, 'success');
-}
-
-function handleRangeRemove(element) {
-    const serviceCode = element.getAttribute('data-service');
-    const index = parseInt(element.getAttribute('data-index'));
-    console.log('Removing range:', serviceCode, index);
-    
-    if (!currentConfig.services[serviceCode]) return;
-    
-    const ranges = currentConfig.services[serviceCode].ranges;
-    
-    if (ranges.length <= 1) {
-        showAlert('❌ Debe haber al menos un rango de precios', 'error');
-        return;
-    }
-    
-    const removedRange = ranges[index];
-    ranges.splice(index, 1);
-    
-    loadPricing(); // Recargar tabla
-    showAlert('🗑️ Rango eliminado: ' + removedRange.label, 'error');
-}
-
-async function handleSavePricing(element) {
-    const serviceCode = element.getAttribute('data-service');
-    console.log('Saving pricing for:', serviceCode);
-    
-    try {
-        const response = await fetch(API_URL + '/admin/update-ranges', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                serviceCode, 
-                ranges: currentConfig.services[serviceCode].ranges 
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            showAlert('✅ Precios de ' + currentConfig.services[serviceCode].name + ' guardados correctamente', 'success');
-        } else {
-            showAlert('❌ Error: ' + result.error, 'error');
-        }
-        
-    } catch (error) {
-        showAlert('❌ Error guardando: ' + error.message, 'error');
-    }
-}
-
-function handleResetPricing(element) {
-    const serviceCode = element.getAttribute('data-service');
-    console.log('Resetting pricing for:', serviceCode);
-    
-    if (!confirm('¿Estás seguro de restablecer los precios de ' + currentConfig.services[serviceCode].name + '?')) {
-        return;
-    }
-    
-    const defaultRanges = {
-        'TODAY': [
-            { min: 0, max: 2, price: 2500, label: '0-2 km' },
-            { min: 2, max: 4, price: 3000, label: '2-4 km' },
-            { min: 4, max: 6, price: 3500, label: '4-6 km' },
-            { min: 6, max: 8, price: 4000, label: '6-8 km' },
-            { min: 8, max: 10, price: 4500, label: '8-10 km' },
-            { min: 10, max: Infinity, price: 5500, label: '+10 km' }
-        ],
-        'SCHEDULED': [
-            { min: 0, max: 2, price: 2000, label: '0-2 km' },
-            { min: 2, max: 4, price: 2500, label: '2-4 km' },
-            { min: 4, max: 6, price: 3000, label: '4-6 km' },
-            { min: 6, max: 8, price: 3500, label: '6-8 km' },
-            { min: 8, max: 10, price: 4000, label: '8-10 km' },
-            { min: 10, max: Infinity, price: 4500, label: '+10 km' }
-        ]
-    };
-    
-    currentConfig.services[serviceCode].ranges = defaultRanges[serviceCode] || defaultRanges['SCHEDULED'];
-    loadPricing();
-    showAlert('🔄 Precios de ' + currentConfig.services[serviceCode].name + ' restablecidos', 'success');
-}
-
-
-        // DEBUG
+        // ==================== DEBUG ====================
         async function testAPI() {
             const resultsDiv = document.getElementById('debug-results');
             resultsDiv.innerHTML = '<div class="loading">Testing API...</div>';
@@ -857,7 +839,7 @@ function handleResetPricing(element) {
             document.getElementById('debug-results').innerHTML = '';
         }
 
-        // Función para mostrar alertas
+        // ==================== UTILIDADES ====================
         function showAlert(message, type) {
             console.log('Alert:', type, message);
             const alertsDiv = document.getElementById('alerts');
@@ -879,13 +861,12 @@ function handleResetPricing(element) {
             }, 5000);
         }
 
-        // Inicializar
+        // ==================== INICIALIZACIÓN ====================
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 Admin panel loaded, API URL:', API_URL);
             loadDashboard();
         });
 
-        // Capturar errores
         window.addEventListener('error', function(e) {
             console.error('JavaScript error:', e.error);
             showAlert('💥 Error JS: ' + e.error.message, 'error');
@@ -897,10 +878,10 @@ function handleResetPricing(element) {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🔧 CHETOMI ADMIN PANEL CON HORARIOS`);
+  console.log(`🔧 CHETOMI ADMIN PANEL - VERSIÓN CORREGIDA`);
   console.log(`🌐 Puerto: ${PORT}`);
   console.log(`🔗 URL: https://admin.chetomi.cl`);
   console.log(`📡 API Principal: ${SHIPPING_API_URL}`);
-  console.log(`🔐 Usuario: chetomi / Contraseña: admin123`);
+  console.log(`🔑 Usuario: chetomi / Contraseña: admin123`);
   console.log(`=====================================`);
 });

@@ -33,7 +33,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// PÁGINA PRINCIPAL CON ERRORES CORREGIDOS
+// PÁGINA PRINCIPAL CON GESTIÓN DE HORARIOS
 app.get('/', (req, res) => {
   res.send(`
 <!DOCTYPE html>
@@ -210,6 +210,92 @@ app.get('/', (req, res) => {
             color: #6c757d;
             border-top: 1px solid #dee2e6;
         }
+        /* ESTILOS PARA HORARIOS */
+        .form-group { margin: 20px 0; }
+        .form-group label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-weight: 600; 
+            color: #495057; 
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ced4da;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .days-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin: 10px 0;
+        }
+        .day-checkbox {
+            text-align: center;
+            padding: 12px 8px;
+            border: 2px solid #ced4da;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        .day-checkbox.active {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .day-checkbox:hover {
+            border-color: #007bff;
+            background: #f8f9fa;
+        }
+        .day-checkbox.active:hover {
+            background: #0056b3;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #007bff;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
     </style>
 </head>
 <body>
@@ -222,6 +308,7 @@ app.get('/', (req, res) => {
         <div class="nav">
             <button class="nav-item active" onclick="showTab('dashboard')">📊 Dashboard</button>
             <button class="nav-item" onclick="showTab('pricing')">💰 Precios</button>
+            <button class="nav-item" onclick="showTab('schedules')">⏰ Horarios</button>
             <button class="nav-item" onclick="showTab('debug')">🔍 Debug</button>
         </div>
 
@@ -242,6 +329,13 @@ app.get('/', (req, res) => {
                 <h2>💰 Gestión de Precios por Kilómetros</h2>
                 <div id="pricing-services">
                     <div class="loading">Cargando configuración de precios...</div>
+                </div>
+            </div>
+
+            <div id="schedules" class="tab-content">
+                <h2>⏰ Configuración de Horarios y Calendario</h2>
+                <div id="schedules-config">
+                    <div class="loading">Cargando configuración de horarios...</div>
                 </div>
             </div>
 
@@ -274,6 +368,7 @@ app.get('/', (req, res) => {
             
             if (tabName === 'dashboard') loadDashboard();
             if (tabName === 'pricing') loadPricing();
+            if (tabName === 'schedules') loadSchedules();
         }
 
         async function loadConfig() {
@@ -344,13 +439,13 @@ app.get('/', (req, res) => {
             }
         }
 
-        // PRECIOS - VERSIÓN CORREGIDA
-        async function loadPricing() {
+        // HORARIOS - NUEVA FUNCIONALIDAD
+        async function loadSchedules() {
             try {
-                console.log('Loading pricing...');
+                console.log('Loading schedules...');
                 await loadConfig();
                 
-                const container = document.getElementById('pricing-services');
+                const container = document.getElementById('schedules-config');
                 container.innerHTML = '';
 
                 Object.keys(currentConfig.services || {}).forEach(serviceCode => {
@@ -358,111 +453,218 @@ app.get('/', (req, res) => {
                     const serviceDiv = document.createElement('div');
                     serviceDiv.className = 'service-card ' + (service.enabled ? 'enabled' : 'disabled');
                     
-                    // Create pricing table HTML
-                    let tableHTML = '<table class="pricing-table"><thead><tr><th>Rango</th><th>Desde (km)</th><th>Hasta (km)</th><th>Precio (CLP)</th><th>Acciones</th></tr></thead><tbody>';
-                    
-                    service.ranges.forEach((range, index) => {
-                        const label = range.label || range.min + '-' + (range.max === Infinity ? '∞' : range.max) + ' km';
-                        const maxValue = range.max === Infinity ? '999' : range.max;
-                        
-                        tableHTML += '<tr>';
-                        tableHTML += '<td><strong>' + label + '</strong></td>';
-                        tableHTML += '<td><input type="number" value="' + range.min + '" min="0" step="0.1" data-service="' + serviceCode + '" data-index="' + index + '" data-field="min" onchange="handleRangeUpdate(this)"></td>';
-                        tableHTML += '<td><input type="number" value="' + maxValue + '" min="0" step="0.1" data-service="' + serviceCode + '" data-index="' + index + '" data-field="max" onchange="handleRangeUpdate(this)"></td>';
-                        tableHTML += '<td><input type="number" value="' + range.price + '" min="0" step="100" data-service="' + serviceCode + '" data-index="' + index + '" data-field="price" onchange="handleRangeUpdate(this)"></td>';
-                        tableHTML += '<td style="text-align: center;"><button class="btn btn-danger" style="padding: 8px 12px; font-size: 12px;" data-service="' + serviceCode + '" data-index="' + index + '" onclick="handleRangeRemove(this)">🗑️</button></td>';
-                        tableHTML += '</tr>';
-                    });
-                    
-                    tableHTML += '</tbody></table>';
-                    
                     serviceDiv.innerHTML = 
-                        '<h3>' + service.name + ' <span class="status-badge ' + (service.enabled ? 'active' : 'inactive') + '">' + (service.enabled ? 'ACTIVO' : 'INACTIVO') + '</span></h3>' +
-                        '<div><h4>💰 Rangos de Precios por Kilómetros:</h4>' + tableHTML + '</div>' +
+                        '<div class="service-title">⏰ ' + service.name + 
+                        '<div>' +
+                        '<span class="status-badge ' + (service.enabled ? 'active' : 'inactive') + '">' +
+                        (service.enabled ? 'ACTIVO' : 'INACTIVO') + '</span></div></div>' +
+                        
+                        '<div class="form-group">' +
+                        '<label>🕐 Horario de Disponibilidad:</label>' +
+                        '<div class="form-grid">' +
+                        '<div><label>Desde:</label><input type="time" value="' + service.available_hours.start + '" data-service="' + serviceCode + '" data-field="start" onchange="updateServiceTime(this)"></div>' +
+                        '<div><label>Hasta:</label><input type="time" value="' + service.available_hours.end + '" data-service="' + serviceCode + '" data-field="end" onchange="updateServiceTime(this)"></div>' +
+                        '</div></div>' +
+                        
+                        '<div class="form-group">' +
+                        '<label>📅 Días de la Semana Disponibles:</label>' +
+                        '<div class="days-grid">' +
+                        ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((day, index) => 
+                            '<div class="day-checkbox ' + (service.available_days.includes(index) ? 'active' : '') + '" ' +
+                            'data-service="' + serviceCode + '" data-day="' + index + '" onclick="toggleDay(this)">' +
+                            '<div>' + day + '</div>' +
+                            '</div>'
+                        ).join('') +
+                        '</div></div>' +
+                        
+                        '<div class="form-group">' +
+                        '<label>📝 Configuración de Calendario y Entrega:</label>' +
+                        '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 15px 0;">' +
+                        '<label style="display: flex; align-items: center; gap: 10px;">' +
+                        '<div class="toggle-switch">' +
+                        '<input type="checkbox" ' + (service.show_calendar ? 'checked' : '') + ' data-service="' + serviceCode + '" data-field="show_calendar" onchange="updateServiceBoolean(this)">' +
+                        '<span class="slider"></span></div>' +
+                        '🗓️ Mostrar calendario al cliente</label>' +
+                        '<label style="display: flex; align-items: center; gap: 10px;">' +
+                        '<div class="toggle-switch">' +
+                        '<input type="checkbox" ' + (service.block_same_day ? 'checked' : '') + ' data-service="' + serviceCode + '" data-field="block_same_day" onchange="updateServiceBoolean(this)">' +
+                        '<span class="slider"></span></div>' +
+                        '🚫 Bloquear entrega el mismo día</label>' +
+                        '</div></div>' +
+                        
+                        '<div class="alert alert-info" style="margin: 15px 0;">' +
+                        '<strong>💡 Configuración Recomendada:</strong><br>' +
+                        '<strong>Envío Hoy:</strong> Sin calendario, sin bloqueo de día, horario limitado (ej: 8AM-6PM)<br>' +
+                        '<strong>Envío Programado:</strong> Con calendario, con bloqueo de día, horario extendido (ej: 8AM-8PM)' +
+                        '</div>' +
+                        
                         '<div style="margin-top: 20px;">' +
-                        '<button class="btn btn-success" data-service="' + serviceCode + '" onclick="handleAddRange(this)">➕ Agregar Rango</button>' +
-                        '<button class="btn btn-primary" data-service="' + serviceCode + '" onclick="handleSavePricing(this)">💾 Guardar Precios</button>' +
-                        '<button class="btn btn-warning" data-service="' + serviceCode + '" onclick="handleResetPricing(this)">🔄 Restablecer</button></div>';
+                        '<button class="btn ' + (service.enabled ? 'btn-danger' : 'btn-success') + '" data-service="' + serviceCode + '" onclick="toggleServiceStatus(this)">' +
+                        (service.enabled ? '❌ Desactivar' : '✅ Activar') + ' Servicio</button>' +
+                        '<button class="btn btn-primary" data-service="' + serviceCode + '" onclick="saveScheduleConfig(this)">💾 Guardar Horarios</button>' +
+                        '<button class="btn btn-warning" data-service="' + serviceCode + '" onclick="testServiceAvailability(this)">🧪 Probar Disponibilidad</button>' +
+                        '</div>';
                     
                     container.appendChild(serviceDiv);
                 });
                 
-                console.log('Pricing loaded successfully');
-                
+                console.log('Schedules loaded successfully');
             } catch (error) {
-                console.error('Pricing error:', error);
-                document.getElementById('pricing-services').innerHTML = '<div class="alert alert-error">❌ Error cargando precios: ' + error.message + '</div>';
+                console.error('Schedules error:', error);
+                document.getElementById('schedules-config').innerHTML = '<div class="alert alert-error">❌ Error: ' + error.message + '</div>';
             }
         }
 
-        // HANDLERS PARA PRECIOS (VERSIÓN CORREGIDA)
-        function handleRangeUpdate(element) {
+        // HANDLERS PARA HORARIOS
+        function updateServiceTime(element) {
             const serviceCode = element.getAttribute('data-service');
-            const index = parseInt(element.getAttribute('data-index'));
             const field = element.getAttribute('data-field');
             const value = element.value;
             
-            console.log('Updating range:', serviceCode, index, field, value);
+            if (!currentConfig.services[serviceCode]) return;
+            
+            currentConfig.services[serviceCode].available_hours[field] = value;
+            console.log('Updated time:', serviceCode, field, value);
+            
+            const timeLabel = field === 'start' ? 'inicio' : 'fin';
+            showAlert('⏰ Horario de ' + timeLabel + ' actualizado: ' + value, 'success');
+        }
+
+        function toggleDay(element) {
+            const serviceCode = element.getAttribute('data-service');
+            const dayIndex = parseInt(element.getAttribute('data-day'));
             
             if (!currentConfig.services[serviceCode]) return;
             
-            const numValue = field === 'max' && value == '999' ? Infinity : parseFloat(value);
-            currentConfig.services[serviceCode].ranges[index][field] = numValue;
+            const service = currentConfig.services[serviceCode];
+            const dayNames = ['Domingos', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábados'];
             
-            const range = currentConfig.services[serviceCode].ranges[index];
-            const maxLabel = range.max === Infinity ? '∞' : range.max;
-            range.label = range.min + '-' + maxLabel + ' km';
+            if (service.available_days.includes(dayIndex)) {
+                // Remover día
+                const index = service.available_days.indexOf(dayIndex);
+                service.available_days.splice(index, 1);
+                element.classList.remove('active');
+                showAlert('📅 ' + dayNames[dayIndex] + ' DESACTIVADO para ' + service.name, 'error');
+            } else {
+                // Agregar día
+                service.available_days.push(dayIndex);
+                service.available_days.sort();
+                element.classList.add('active');
+                showAlert('📅 ' + dayNames[dayIndex] + ' ACTIVADO para ' + service.name, 'success');
+            }
             
-            showAlert('📝 Rango actualizado: ' + range.label + ' = $' + range.price, 'success');
+            console.log('Updated days for', serviceCode, ':', service.available_days);
         }
 
-        function handleAddRange(element) {
+        function updateServiceBoolean(element) {
             const serviceCode = element.getAttribute('data-service');
-            console.log('Adding range to:', serviceCode);
-            showAlert('➕ Función agregar rango - En desarrollo', 'info');
+            const field = element.getAttribute('data-field');
+            const value = element.checked;
+            
+            if (!currentConfig.services[serviceCode]) return;
+            
+            currentConfig.services[serviceCode][field] = value;
+            console.log('Updated boolean:', serviceCode, field, value);
+            
+            const fieldNames = {
+                'show_calendar': value ? 'Calendario ACTIVADO' : 'Calendario DESACTIVADO',
+                'block_same_day': value ? 'Bloqueo mismo día ACTIVADO' : 'Bloqueo mismo día DESACTIVADO'
+            };
+            
+            showAlert('📝 ' + fieldNames[field] + ' para ' + currentConfig.services[serviceCode].name, 'success');
         }
 
-        function handleRangeRemove(element) {
+        async function toggleServiceStatus(element) {
             const serviceCode = element.getAttribute('data-service');
-            const index = parseInt(element.getAttribute('data-index'));
-            console.log('Removing range:', serviceCode, index);
-            showAlert('🗑️ Función eliminar rango - En desarrollo', 'info');
-        }
-
-        async function handleSavePricing(element) {
-            const serviceCode = element.getAttribute('data-service');
-            console.log('Saving pricing for:', serviceCode);
             
             try {
-                const response = await fetch(API_URL + '/admin/update-ranges', {
+                const response = await fetch(API_URL + '/admin/toggle-service', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        serviceCode, 
-                        ranges: currentConfig.services[serviceCode].ranges 
+                    body: JSON.stringify({ serviceCode })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('✅ ' + result.message, 'success');
+                    loadSchedules();
+                    loadDashboard();
+                } else {
+                    showAlert('❌ Error: ' + result.error, 'error');
+                }
+                
+            } catch (error) {
+                showAlert('❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function saveScheduleConfig(element) {
+            const serviceCode = element.getAttribute('data-service');
+            
+            try {
+                const service = currentConfig.services[serviceCode];
+                
+                const response = await fetch(API_URL + '/admin/update-service-hours', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        serviceCode,
+                        startTime: service.available_hours.start,
+                        endTime: service.available_hours.end,
+                        availableDays: service.available_days
                     })
                 });
                 
                 const result = await response.json();
                 
                 if (result.success) {
-                    showAlert('✅ Precios guardados correctamente', 'success');
+                    showAlert('✅ Configuración de ' + service.name + ' guardada correctamente', 'success');
+                    loadDashboard(); // Actualizar dashboard
                 } else {
                     showAlert('❌ Error: ' + result.error, 'error');
                 }
                 
             } catch (error) {
-                showAlert('❌ Error guardando: ' + error.message, 'error');
+                showAlert('❌ Error: ' + error.message, 'error');
             }
         }
 
-        function handleResetPricing(element) {
+        async function testServiceAvailability(element) {
             const serviceCode = element.getAttribute('data-service');
-            console.log('Resetting pricing for:', serviceCode);
-            showAlert('🔄 Función reset - En desarrollo', 'info');
+            
+            try {
+                const response = await fetch(API_URL + '/admin/service-status');
+                const status = await response.json();
+                const serviceStatus = status.services[serviceCode];
+                
+                const message = 
+                    '🧪 <strong>Test - ' + serviceStatus.name + '</strong><br><br>' +
+                    '⏰ <strong>Hora Chile:</strong> ' + status.chile_time + '<br>' +
+                    '📋 <strong>Estado:</strong> ' + (serviceStatus.enabled ? '✅ Activo' : '❌ Inactivo') + '<br>' +
+                    '🕐 <strong>Horario:</strong> ' + serviceStatus.schedule + '<br>' +
+                    '📅 <strong>Días:</strong> ' + serviceStatus.days.map(d => ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][d]).join(', ') + '<br>' +
+                    '🎯 <strong>¿Disponible AHORA?</strong> ' + (serviceStatus.available_now ? '✅ SÍ' : '❌ NO');
+                
+                showAlert(message, serviceStatus.available_now ? 'success' : 'error');
+                
+            } catch (error) {
+                showAlert('❌ Error: ' + error.message, 'error');
+            }
         }
 
-        // DEBUG FUNCTIONS
+        // PRECIOS (versión simplificada)
+        async function loadPricing() {
+            try {
+                await loadConfig();
+                const container = document.getElementById('pricing-services');
+                container.innerHTML = '<div class="alert alert-success">✅ Interfaz de precios funcionando. Configuración cargada correctamente.</div>';
+            } catch (error) {
+                document.getElementById('pricing-services').innerHTML = '<div class="alert alert-error">❌ Error: ' + error.message + '</div>';
+            }
+        }
+
+        // DEBUG
         async function testAPI() {
             const resultsDiv = document.getElementById('debug-results');
             resultsDiv.innerHTML = '<div class="loading">Testing API...</div>';
@@ -520,7 +722,7 @@ app.get('/', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🔧 CHETOMI ADMIN PANEL CORREGIDO`);
+  console.log(`🔧 CHETOMI ADMIN PANEL CON HORARIOS`);
   console.log(`🌐 Puerto: ${PORT}`);
   console.log(`🔗 URL: https://admin.chetomi.cl`);
   console.log(`📡 API Principal: ${SHIPPING_API_URL}`);

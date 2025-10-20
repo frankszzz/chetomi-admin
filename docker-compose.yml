@@ -9,6 +9,7 @@ services:
       - ORS_API_KEY=tu_api_key
       - ORIGIN_LAT=-33.4489
       - ORIGIN_LON=-70.6693
+      - NODE_ENV=production
     command: node app.js
     ports:
       - "3001:3001"
@@ -18,6 +19,8 @@ services:
       dockerfile: Dockerfile
     environment:
       - PORT=3002
+      - SHIPPING_API_URL=http://backend:3001
+      - NODE_ENV=production
     command: node admin.js
     ports:
       - "3002:3002"

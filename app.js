@@ -57,11 +57,9 @@ let SHIPPING_CONFIG = {
 
 // Funciones para cargar y guardar configuración, cálculo de precios, validación de horarios, geocodificación y endpoints (a copiar completo de tu archivo app-js.txt adjunto)
 
-// Carga y guarda configuración, endpoints REST, cálculo de tarifa etc.
-
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 CHETOMI SHIPPING CALCULATOR`);
-    console.log(`🏪 Tienda: ${SHIPPING_CONFIG.store_info.name}`);
-    console.log(`🌐 Puerto: ${PORT}`);
-  });
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 CHETOMI SHIPPING CALCULATOR`);
+  console.log(`🏪 Tienda: ${SHIPPING_CONFIG.store_info.name}`);
+  console.log(`🌐 Puerto: ${PORT}`);
+});
 

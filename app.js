@@ -59,10 +59,9 @@ let SHIPPING_CONFIG = {
 
 // Carga y guarda configuración, endpoints REST, cálculo de tarifa etc.
 
-loadConfig().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 CHETOMI SHIPPING CALCULATOR`);
     console.log(`🏪 Tienda: ${SHIPPING_CONFIG.store_info.name}`);
     console.log(`🌐 Puerto: ${PORT}`);
   });
-});
+

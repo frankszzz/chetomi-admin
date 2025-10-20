@@ -10,7 +10,7 @@ const SHIPPING_API_URL = process.env.SHIPPING_API_URL || 'https://envio.chetomi.
 app.use(express.json());
 app.use(cors());
 
-// MIDDLEWARE DE AUTENTICACIÓN
+// MIDDLEWARE DE AUTENTICACIÃ“N
 app.use((req, res, next) => {
   if (req.path.startsWith('/api-proxy')) {
     return next();
@@ -23,17 +23,17 @@ app.use((req, res, next) => {
     res.setHeader('WWW-Authenticate', 'Basic realm="Panel Admin Chetomi"');
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     return res.status(401).send(`
-      <h1>🔒 Acceso Restringido</h1>
-      <p>Panel de Administración - Chetomi Envíos</p>
+      <h1>ðŸ”’ Acceso Restringido</h1>
+      <p>Panel de AdministraciÃ³n - Chetomi EnvÃ­os</p>
       <p><strong>Usuario:</strong> chetomi</p>
-      <p><strong>Contraseña:</strong> admin123</p>
+      <p><strong>ContraseÃ±a:</strong> admin123</p>
     `);
   }
   
   next();
 });
 
-// PÁGINA PRINCIPAL CON GESTIÓN DE HORARIOS Y PRECIOS
+// PÃGINA PRINCIPAL CON GESTIÃ“N DE HORARIOS Y PRECIOS
 app.get('/', (req, res) => {
   res.send(`
 <!DOCTYPE html>
@@ -41,7 +41,7 @@ app.get('/', (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - Chetomi Envíos</title>
+    <title>Admin Panel - Chetomi EnvÃ­os</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
@@ -300,22 +300,22 @@ app.get('/', (req, res) => {
 <body>
     <div class="container">
         <div class="header">
-            <h1>🛍️ Panel de Administración</h1>
-            <p>Gestión Completa de Envíos - Chetomi</p>
+            <h1>ðŸ›ï¸ Panel de AdministraciÃ³n</h1>
+            <p>GestiÃ³n Completa de EnvÃ­os - Chetomi</p>
         </div>
 
         <div class="nav">
-            <button class="nav-item active" onclick="showTab('dashboard')">📊 Dashboard</button>
-            <button class="nav-item" onclick="showTab('pricing')">💰 Precios</button>
-            <button class="nav-item" onclick="showTab('schedules')">⏰ Horarios</button>
-            <button class="nav-item" onclick="showTab('debug')">🔍 Debug</button>
+            <button class="nav-item active" onclick="showTab('dashboard')">ðŸ“Š Dashboard</button>
+            <button class="nav-item" onclick="showTab('pricing')">ðŸ’° Precios</button>
+            <button class="nav-item" onclick="showTab('schedules')">â° Horarios</button>
+            <button class="nav-item" onclick="showTab('debug')">ðŸ” Debug</button>
         </div>
 
         <div class="content">
             <div id="dashboard" class="tab-content active">
-                <h2>📊 Dashboard en Tiempo Real</h2>
+                <h2>ðŸ“Š Dashboard en Tiempo Real</h2>
                 <div id="dashboard-stats" class="stats-grid">
-                    <div class="loading">Cargando estadísticas...</div>
+                    <div class="loading">Cargando estadÃ­sticas...</div>
                 </div>
                 
                 <div id="services-status">
@@ -325,29 +325,29 @@ app.get('/', (req, res) => {
             </div>
 
             <div id="pricing" class="tab-content">
-                <h2>💰 Gestión de Precios por Kilómetros</h2>
+                <h2>ðŸ’° GestiÃ³n de Precios por KilÃ³metros</h2>
                 <div id="pricing-services">
-                    <div class="loading">Cargando configuración de precios...</div>
+                    <div class="loading">Cargando configuraciÃ³n de precios...</div>
                 </div>
             </div>
 
             <div id="schedules" class="tab-content">
-                <h2>⏰ Configuración de Horarios y Calendario</h2>
+                <h2>â° ConfiguraciÃ³n de Horarios y Calendario</h2>
                 <div id="schedules-config">
-                    <div class="loading">Cargando configuración de horarios...</div>
+                    <div class="loading">Cargando configuraciÃ³n de horarios...</div>
                 </div>
             </div>
 
             <div id="debug" class="tab-content">
-                <h2>🔍 Debug y Tests</h2>
-                <button class="btn btn-primary" onclick="testAPI()">🧪 Test API</button>
-                <button class="btn btn-warning" onclick="clearDebug()">🗑️ Clear</button>
+                <h2>ðŸ” Debug y Tests</h2>
+                <button class="btn btn-primary" onclick="testAPI()">ðŸ§ª Test API</button>
+                <button class="btn btn-warning" onclick="clearDebug()">ðŸ—‘ï¸ Clear</button>
                 <div id="debug-results"></div>
             </div>
         </div>
 
         <div class="footer">
-            <p>© 2025 Chetomi - Panel Admin | <a href="${SHIPPING_API_URL}/health" target="_blank">API Status</a></p>
+            <p>Â© 2025 Chetomi - Panel Admin | <a href="${SHIPPING_API_URL}/health" target="_blank">API Status</a></p>
         </div>
     </div>
 
@@ -357,7 +357,7 @@ app.get('/', (req, res) => {
         const API_URL = '${SHIPPING_API_URL}';
         let currentConfig = {};
 
-        // Navegación entre pestañas
+        // NavegaciÃ³n entre pestaÃ±as
         function showTab(tabName) {
             document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -383,7 +383,7 @@ app.get('/', (req, res) => {
                 console.log('Config loaded:', currentConfig);
             } catch (error) {
                 console.error('Config error:', error);
-                showAlert('Error cargando configuración: ' + error.message, 'error');
+                showAlert('Error cargando configuraciÃ³n: ' + error.message, 'error');
                 throw error;
             }
         }
@@ -406,10 +406,10 @@ app.get('/', (req, res) => {
                 const status = await statusResponse.json();
                 
                 document.getElementById('dashboard-stats').innerHTML = 
-                    '<div class="stat-card"><div class="stat-number">✅</div><div class="stat-label">Sistema Activo</div></div>' +
+                    '<div class="stat-card"><div class="stat-number">âœ…</div><div class="stat-label">Sistema Activo</div></div>' +
                     '<div class="stat-card"><div class="stat-number">' + (health.services_enabled || 0) + '</div><div class="stat-label">Servicios Habilitados</div></div>' +
-                    '<div class="stat-card"><div class="stat-number">🇨🇱</div><div class="stat-label">Zona: Santiago</div></div>' +
-                    '<div class="stat-card"><div class="stat-number">⏰</div><div class="stat-label">' + (status.chile_time || 'N/A') + '</div></div>';
+                    '<div class="stat-card"><div class="stat-number">ðŸ‡¨ðŸ‡±</div><div class="stat-label">Zona: Santiago</div></div>' +
+                    '<div class="stat-card"><div class="stat-number">â°</div><div class="stat-label">' + (status.chile_time || 'N/A') + '</div></div>';
                 
                 let servicesHtml = '';
                 Object.keys(status.services || {}).forEach(serviceCode => {
@@ -419,12 +419,12 @@ app.get('/', (req, res) => {
                         '<div class="service-title">' + service.name +
                         '<div>' +
                         '<span class="status-badge ' + (service.available_now ? 'available' : 'unavailable') + '">' +
-                        (service.available_now ? '🟢 DISPONIBLE' : '🔴 NO DISPONIBLE') + '</span>' +
+                        (service.available_now ? 'ðŸŸ¢ DISPONIBLE' : 'ðŸ”´ NO DISPONIBLE') + '</span>' +
                         '<span class="status-badge ' + (service.enabled ? 'active' : 'inactive') + '">' +
                         (service.enabled ? 'ACTIVO' : 'INACTIVO') + '</span></div></div>' +
-                        '<div class="alert alert-info">⏰ <strong>Hora actual:</strong> ' + service.current_time + '<br>' +
-                        '📅 <strong>Horario configurado:</strong> ' + service.schedule + '<br>' +
-                        '📋 <strong>Días permitidos:</strong> ' + service.days.map(d => ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][d]).join(', ') + '</div></div>';
+                        '<div class="alert alert-info">â° <strong>Hora actual:</strong> ' + service.current_time + '<br>' +
+                        'ðŸ“… <strong>Horario configurado:</strong> ' + service.schedule + '<br>' +
+                        'ðŸ“‹ <strong>DÃ­as permitidos:</strong> ' + service.days.map(d => ['Dom','Lun','Mar','MiÃ©','Jue','Vie','SÃ¡b'][d]).join(', ') + '</div></div>';
                 });
                 
                 document.getElementById('live-status').innerHTML = servicesHtml;
@@ -432,7 +432,7 @@ app.get('/', (req, res) => {
                 
             } catch (error) {
                 console.error('Dashboard error:', error);
-                document.getElementById('dashboard-stats').innerHTML = '<div class="alert alert-error">❌ Error: ' + error.message + '</div>';
+                document.getElementById('dashboard-stats').innerHTML = '<div class="alert alert-error">âŒ Error: ' + error.message + '</div>';
             }
         }
 
@@ -453,7 +453,7 @@ app.get('/', (req, res) => {
                     let tableHTML = '<table class="pricing-table"><thead><tr><th>Rango</th><th>Desde (km)</th><th>Hasta (km)</th><th>Precio (CLP)</th><th>Acciones</th></tr></thead><tbody>';
                     
                     service.ranges.forEach((range, index) => {
-                        const label = range.label || range.min + '-' + (range.max === Infinity ? '∞' : range.max) + ' km';
+                        const label = range.label || range.min + '-' + (range.max === Infinity ? 'âˆž' : range.max) + ' km';
                         const maxValue = range.max === Infinity ? '999' : range.max;
                         
                         tableHTML += '<tr>';
@@ -461,7 +461,7 @@ app.get('/', (req, res) => {
                         tableHTML += '<td><input type="number" value="' + range.min + '" min="0" step="0.1" data-service="' + serviceCode + '" data-index="' + index + '" data-field="min" onchange="handleRangeUpdate(this)"></td>';
                         tableHTML += '<td><input type="number" value="' + maxValue + '" min="0" step="0.1" data-service="' + serviceCode + '" data-index="' + index + '" data-field="max" onchange="handleRangeUpdate(this)"></td>';
                         tableHTML += '<td><input type="number" value="' + range.price + '" min="0" step="100" data-service="' + serviceCode + '" data-index="' + index + '" data-field="price" onchange="handleRangeUpdate(this)"></td>';
-                        tableHTML += '<td style="text-align: center;"><button class="btn btn-danger" style="padding: 8px 12px; font-size: 12px;" data-service="' + serviceCode + '" data-index="' + index + '" onclick="handleRangeRemove(this)">🗑️</button></td>';
+                        tableHTML += '<td style="text-align: center;"><button class="btn btn-danger" style="padding: 8px 12px; font-size: 12px;" data-service="' + serviceCode + '" data-index="' + index + '" onclick="handleRangeRemove(this)">ðŸ—‘ï¸</button></td>';
                         tableHTML += '</tr>';
                     });
                     
@@ -469,11 +469,11 @@ app.get('/', (req, res) => {
                     
                     serviceDiv.innerHTML = 
                         '<h3>' + service.name + ' <span class="status-badge ' + (service.enabled ? 'active' : 'inactive') + '">' + (service.enabled ? 'ACTIVO' : 'INACTIVO') + '</span></h3>' +
-                        '<div><h4>💰 Rangos de Precios por Kilómetros:</h4>' + tableHTML + '</div>' +
+                        '<div><h4>ðŸ’° Rangos de Precios por KilÃ³metros:</h4>' + tableHTML + '</div>' +
                         '<div style="margin-top: 20px;">' +
-                        '<button class="btn btn-success" data-service="' + serviceCode + '" onclick="handleAddRange(this)">➕ Agregar Rango</button>' +
-                        '<button class="btn btn-primary" data-service="' + serviceCode + '" onclick="handleSavePricing(this)">💾 Guardar Precios</button>' +
-                        '<button class="btn btn-warning" data-service="' + serviceCode + '" onclick="handleResetPricing(this)">🔄 Restablecer</button></div>';
+                        '<button class="btn btn-success" data-service="' + serviceCode + '" onclick="handleAddRange(this)">âž• Agregar Rango</button>' +
+                        '<button class="btn btn-primary" data-service="' + serviceCode + '" onclick="handleSavePricing(this)">ðŸ’¾ Guardar Precios</button>' +
+                        '<button class="btn btn-warning" data-service="' + serviceCode + '" onclick="handleResetPricing(this)">ðŸ”„ Restablecer</button></div>';
                     
                     container.appendChild(serviceDiv);
                 });
@@ -482,7 +482,7 @@ app.get('/', (req, res) => {
                 
             } catch (error) {
                 console.error('Pricing error:', error);
-                document.getElementById('pricing-services').innerHTML = '<div class="alert alert-error">❌ Error cargando precios: ' + error.message + '</div>';
+                document.getElementById('pricing-services').innerHTML = '<div class="alert alert-error">âŒ Error cargando precios: ' + error.message + '</div>';
             }
         }
 
@@ -500,10 +500,10 @@ app.get('/', (req, res) => {
             currentConfig.services[serviceCode].ranges[index][field] = numValue;
             
             const range = currentConfig.services[serviceCode].ranges[index];
-            const maxLabel = range.max === Infinity ? '∞' : range.max;
+            const maxLabel = range.max === Infinity ? 'âˆž' : range.max;
             range.label = range.min + '-' + maxLabel + ' km';
             
-            showAlert('📝 Rango actualizado: ' + range.label + ' = $' + range.price, 'success');
+            showAlert('ðŸ“ Rango actualizado: ' + range.label + ' = $' + range.price, 'success');
         }
 
         function handleAddRange(element) {
@@ -533,7 +533,7 @@ app.get('/', (req, res) => {
             }
             
             loadPricing();
-            showAlert('➕ Nuevo rango agregado: ' + newRange.label, 'success');
+            showAlert('âž• Nuevo rango agregado: ' + newRange.label, 'success');
         }
 
         function handleRangeRemove(element) {
@@ -546,7 +546,7 @@ app.get('/', (req, res) => {
             const ranges = currentConfig.services[serviceCode].ranges;
             
             if (ranges.length <= 1) {
-                showAlert('❌ Debe haber al menos un rango de precios', 'error');
+                showAlert('âŒ Debe haber al menos un rango de precios', 'error');
                 return;
             }
             
@@ -554,7 +554,7 @@ app.get('/', (req, res) => {
             ranges.splice(index, 1);
             
             loadPricing();
-            showAlert('🗑️ Rango eliminado: ' + removedRange.label, 'error');
+            showAlert('ðŸ—‘ï¸ Rango eliminado: ' + removedRange.label, 'error');
         }
 
         async function handleSavePricing(element) {
@@ -574,13 +574,13 @@ app.get('/', (req, res) => {
                 const result = await response.json();
                 
                 if (result.success) {
-                    showAlert('✅ Precios de ' + currentConfig.services[serviceCode].name + ' guardados correctamente', 'success');
+                    showAlert('âœ… Precios de ' + currentConfig.services[serviceCode].name + ' guardados correctamente', 'success');
                 } else {
-                    showAlert('❌ Error: ' + result.error, 'error');
+                    showAlert('âŒ Error: ' + result.error, 'error');
                 }
                 
             } catch (error) {
-                showAlert('❌ Error guardando: ' + error.message, 'error');
+                showAlert('âŒ Error guardando: ' + error.message, 'error');
             }
         }
 
@@ -588,7 +588,7 @@ app.get('/', (req, res) => {
             const serviceCode = element.getAttribute('data-service');
             console.log('Resetting pricing for:', serviceCode);
             
-            if (!confirm('¿Estás seguro de restablecer los precios de ' + currentConfig.services[serviceCode].name + '?')) {
+            if (!confirm('Â¿EstÃ¡s seguro de restablecer los precios de ' + currentConfig.services[serviceCode].name + '?')) {
                 return;
             }
             
@@ -613,7 +613,7 @@ app.get('/', (req, res) => {
             
             currentConfig.services[serviceCode].ranges = defaultRanges[serviceCode] || defaultRanges['SCHEDULED'];
             loadPricing();
-            showAlert('🔄 Precios de ' + currentConfig.services[serviceCode].name + ' restablecidos', 'success');
+            showAlert('ðŸ”„ Precios de ' + currentConfig.services[serviceCode].name + ' restablecidos', 'success');
         }
 
         // ==================== HORARIOS ====================
@@ -631,22 +631,22 @@ app.get('/', (req, res) => {
                     serviceDiv.className = 'service-card ' + (service.enabled ? 'enabled' : 'disabled');
                     
                     serviceDiv.innerHTML = 
-                        '<div class="service-title">⏰ ' + service.name + 
+                        '<div class="service-title">â° ' + service.name + 
                         '<div>' +
                         '<span class="status-badge ' + (service.enabled ? 'active' : 'inactive') + '">' +
                         (service.enabled ? 'ACTIVO' : 'INACTIVO') + '</span></div></div>' +
                         
                         '<div class="form-group">' +
-                        '<label>🕐 Horario de Disponibilidad:</label>' +
+                        '<label>ðŸ• Horario de Disponibilidad:</label>' +
                         '<div class="form-grid">' +
                         '<div><label>Desde:</label><input type="time" value="' + service.available_hours.start + '" data-service="' + serviceCode + '" data-field="start" onchange="updateServiceTime(this)"></div>' +
                         '<div><label>Hasta:</label><input type="time" value="' + service.available_hours.end + '" data-service="' + serviceCode + '" data-field="end" onchange="updateServiceTime(this)"></div>' +
                         '</div></div>' +
                         
                         '<div class="form-group">' +
-                        '<label>📅 Días de la Semana Disponibles:</label>' +
+                        '<label>ðŸ“… DÃ­as de la Semana Disponibles:</label>' +
                         '<div class="days-grid">' +
-                        ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((day, index) => 
+                        ['Dom', 'Lun', 'Mar', 'MiÃ©', 'Jue', 'Vie', 'SÃ¡b'].map((day, index) => 
                             '<div class="day-checkbox ' + (service.available_days.includes(index) ? 'active' : '') + '" ' +
                             'data-service="' + serviceCode + '" data-day="' + index + '" onclick="toggleDay(this)">' +
                             '<div>' + day + '</div>' +
@@ -655,25 +655,25 @@ app.get('/', (req, res) => {
                         '</div></div>' +
                         
                         '<div class="form-group">' +
-                        '<label>📝 Configuración de Calendario y Entrega:</label>' +
+                        '<label>ðŸ“ ConfiguraciÃ³n de Calendario y Entrega:</label>' +
                         '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 15px 0;">' +
                         '<label style="display: flex; align-items: center; gap: 10px;">' +
                         '<div class="toggle-switch">' +
                         '<input type="checkbox" ' + (service.show_calendar ? 'checked' : '') + ' data-service="' + serviceCode + '" data-field="show_calendar" onchange="updateServiceBoolean(this)">' +
                         '<span class="slider"></span></div>' +
-                        '🗓️ Mostrar calendario al cliente</label>' +
+                        'ðŸ—“ï¸ Mostrar calendario al cliente</label>' +
                         '<label style="display: flex; align-items: center; gap: 10px;">' +
                         '<div class="toggle-switch">' +
                         '<input type="checkbox" ' + (service.block_same_day ? 'checked' : '') + ' data-service="' + serviceCode + '" data-field="block_same_day" onchange="updateServiceBoolean(this)">' +
                         '<span class="slider"></span></div>' +
-                        '🚫 Bloquear entrega el mismo día</label>' +
+                        'ðŸš« Bloquear entrega el mismo dÃ­a</label>' +
                         '</div></div>' +
                         
                         '<div style="margin-top: 20px;">' +
                         '<button class="btn ' + (service.enabled ? 'btn-danger' : 'btn-success') + '" data-service="' + serviceCode + '" onclick="toggleServiceStatus(this)">' +
-                        (service.enabled ? '❌ Desactivar' : '✅ Activar') + ' Servicio</button>' +
-                        '<button class="btn btn-primary" data-service="' + serviceCode + '" onclick="saveScheduleConfig(this)">💾 Guardar Horarios</button>' +
-                        '<button class="btn btn-warning" data-service="' + serviceCode + '" onclick="testServiceAvailability(this)">🧪 Probar Disponibilidad</button>' +
+                        (service.enabled ? 'âŒ Desactivar' : 'âœ… Activar') + ' Servicio</button>' +
+                        '<button class="btn btn-primary" data-service="' + serviceCode + '" onclick="saveScheduleConfig(this)">ðŸ’¾ Guardar Horarios</button>' +
+                        '<button class="btn btn-warning" data-service="' + serviceCode + '" onclick="testServiceAvailability(this)">ðŸ§ª Probar Disponibilidad</button>' +
                         '</div>';
                     
                     container.appendChild(serviceDiv);
@@ -682,7 +682,7 @@ app.get('/', (req, res) => {
                 console.log('Schedules loaded successfully');
             } catch (error) {
                 console.error('Schedules error:', error);
-                document.getElementById('schedules-config').innerHTML = '<div class="alert alert-error">❌ Error: ' + error.message + '</div>';
+                document.getElementById('schedules-config').innerHTML = '<div class="alert alert-error">âŒ Error: ' + error.message + '</div>';
             }
         }
 
@@ -697,7 +697,7 @@ app.get('/', (req, res) => {
             console.log('Updated time:', serviceCode, field, value);
             
             const timeLabel = field === 'start' ? 'inicio' : 'fin';
-            showAlert('⏰ Horario de ' + timeLabel + ' actualizado: ' + value, 'success');
+            showAlert('â° Horario de ' + timeLabel + ' actualizado: ' + value, 'success');
         }
 
         function toggleDay(element) {
@@ -707,18 +707,18 @@ app.get('/', (req, res) => {
             if (!currentConfig.services[serviceCode]) return;
             
             const service = currentConfig.services[serviceCode];
-            const dayNames = ['Domingos', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábados'];
+            const dayNames = ['Domingos', 'Lunes', 'Martes', 'MiÃ©rcoles', 'Jueves', 'Viernes', 'SÃ¡bados'];
             
             if (service.available_days.includes(dayIndex)) {
                 const index = service.available_days.indexOf(dayIndex);
                 service.available_days.splice(index, 1);
                 element.classList.remove('active');
-                showAlert('📅 ' + dayNames[dayIndex] + ' DESACTIVADO para ' + service.name, 'error');
+                showAlert('ðŸ“… ' + dayNames[dayIndex] + ' DESACTIVADO para ' + service.name, 'error');
             } else {
                 service.available_days.push(dayIndex);
                 service.available_days.sort();
                 element.classList.add('active');
-                showAlert('📅 ' + dayNames[dayIndex] + ' ACTIVADO para ' + service.name, 'success');
+                showAlert('ðŸ“… ' + dayNames[dayIndex] + ' ACTIVADO para ' + service.name, 'success');
             }
             
             console.log('Updated days for', serviceCode, ':', service.available_days);
@@ -736,10 +736,10 @@ app.get('/', (req, res) => {
             
             const fieldNames = {
                 'show_calendar': value ? 'Calendario ACTIVADO' : 'Calendario DESACTIVADO',
-                'block_same_day': value ? 'Bloqueo mismo día ACTIVADO' : 'Bloqueo mismo día DESACTIVADO'
+                'block_same_day': value ? 'Bloqueo mismo dÃ­a ACTIVADO' : 'Bloqueo mismo dÃ­a DESACTIVADO'
             };
             
-            showAlert('📝 ' + fieldNames[field] + ' para ' + currentConfig.services[serviceCode].name, 'success');
+            showAlert('ðŸ“ ' + fieldNames[field] + ' para ' + currentConfig.services[serviceCode].name, 'success');
         }
 
         async function toggleServiceStatus(element) {
@@ -755,15 +755,15 @@ app.get('/', (req, res) => {
                 const result = await response.json();
                 
                 if (result.success) {
-                    showAlert('✅ ' + result.message, 'success');
+                    showAlert('âœ… ' + result.message, 'success');
                     loadSchedules();
                     loadDashboard();
                 } else {
-                    showAlert('❌ Error: ' + result.error, 'error');
+                    showAlert('âŒ Error: ' + result.error, 'error');
                 }
                 
             } catch (error) {
-                showAlert('❌ Error: ' + error.message, 'error');
+                showAlert('âŒ Error: ' + error.message, 'error');
             }
         }
 
@@ -787,14 +787,14 @@ app.get('/', (req, res) => {
                 const result = await response.json();
                 
                 if (result.success) {
-                    showAlert('✅ Configuración de ' + service.name + ' guardada correctamente', 'success');
+                    showAlert('âœ… ConfiguraciÃ³n de ' + service.name + ' guardada correctamente', 'success');
                     loadDashboard();
                 } else {
-                    showAlert('❌ Error: ' + result.error, 'error');
+                    showAlert('âŒ Error: ' + result.error, 'error');
                 }
                 
             } catch (error) {
-                showAlert('❌ Error: ' + error.message, 'error');
+                showAlert('âŒ Error: ' + error.message, 'error');
             }
         }
 
@@ -807,17 +807,17 @@ app.get('/', (req, res) => {
                 const serviceStatus = status.services[serviceCode];
                 
                 const message = 
-                    '🧪 <strong>Test - ' + serviceStatus.name + '</strong><br><br>' +
-                    '⏰ <strong>Hora Chile:</strong> ' + status.chile_time + '<br>' +
-                    '📋 <strong>Estado:</strong> ' + (serviceStatus.enabled ? '✅ Activo' : '❌ Inactivo') + '<br>' +
-                    '🕐 <strong>Horario:</strong> ' + serviceStatus.schedule + '<br>' +
-                    '📅 <strong>Días:</strong> ' + serviceStatus.days.map(d => ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'][d]).join(', ') + '<br>' +
-                    '🎯 <strong>¿Disponible AHORA?</strong> ' + (serviceStatus.available_now ? '✅ SÍ' : '❌ NO');
+                    'ðŸ§ª <strong>Test - ' + serviceStatus.name + '</strong><br><br>' +
+                    'â° <strong>Hora Chile:</strong> ' + status.chile_time + '<br>' +
+                    'ðŸ“‹ <strong>Estado:</strong> ' + (serviceStatus.enabled ? 'âœ… Activo' : 'âŒ Inactivo') + '<br>' +
+                    'ðŸ• <strong>Horario:</strong> ' + serviceStatus.schedule + '<br>' +
+                    'ðŸ“… <strong>DÃ­as:</strong> ' + serviceStatus.days.map(d => ['Dom','Lun','Mar','MiÃ©','Jue','Vie','SÃ¡b'][d]).join(', ') + '<br>' +
+                    'ðŸŽ¯ <strong>Â¿Disponible AHORA?</strong> ' + (serviceStatus.available_now ? 'âœ… SÃ' : 'âŒ NO');
                 
                 showAlert(message, serviceStatus.available_now ? 'success' : 'error');
                 
             } catch (error) {
-                showAlert('❌ Error: ' + error.message, 'error');
+                showAlert('âŒ Error: ' + error.message, 'error');
             }
         }
 
@@ -829,9 +829,9 @@ app.get('/', (req, res) => {
             try {
                 const response = await fetch(API_URL + '/health');
                 const data = await response.json();
-                resultsDiv.innerHTML = '<div class="alert alert-success">✅ API OK: ' + JSON.stringify(data, null, 2) + '</div>';
+                resultsDiv.innerHTML = '<div class="alert alert-success">âœ… API OK: ' + JSON.stringify(data, null, 2) + '</div>';
             } catch (error) {
-                resultsDiv.innerHTML = '<div class="alert alert-error">❌ API Error: ' + error.message + '</div>';
+                resultsDiv.innerHTML = '<div class="alert alert-error">âŒ API Error: ' + error.message + '</div>';
             }
         }
 
@@ -861,15 +861,15 @@ app.get('/', (req, res) => {
             }, 5000);
         }
 
-        // ==================== INICIALIZACIÓN ====================
+        // ==================== INICIALIZACIÃ“N ====================
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Admin panel loaded, API URL:', API_URL);
+            console.log('ðŸš€ Admin panel loaded, API URL:', API_URL);
             loadDashboard();
         });
 
         window.addEventListener('error', function(e) {
             console.error('JavaScript error:', e.error);
-            showAlert('💥 Error JS: ' + e.error.message, 'error');
+            showAlert('ðŸ’¥ Error JS: ' + e.error.message, 'error');
         });
     </script>
 </body>
@@ -878,10 +878,10 @@ app.get('/', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🔧 CHETOMI ADMIN PANEL - VERSIÓN CORREGIDA`);
-  console.log(`🌐 Puerto: ${PORT}`);
-  console.log(`🔗 URL: https://admin.chetomi.cl`);
-  console.log(`📡 API Principal: ${SHIPPING_API_URL}`);
-  console.log(`🔑 Usuario: chetomi / Contraseña: admin123`);
+  console.log(`ðŸ”§ CHETOMI ADMIN PANEL - VERSIÃ“N CORREGIDA`);
+  console.log(`ðŸŒ Puerto: ${PORT}`);
+  console.log(`ðŸ”— URL: https://admin.chetomi.cl`);
+  console.log(`ðŸ“¡ API Principal: ${SHIPPING_API_URL}`);
+  console.log(`ðŸ”‘ Usuario: chetomi / ContraseÃ±a: admin123`);
   console.log(`=====================================`);
 });
